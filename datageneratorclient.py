@@ -6,16 +6,16 @@ import random
 
 t = 0
 while t < 10:
-    # import random 
+    # generate a measurement
     measurement = { }
     measurement['time'] = t
     measurement['x'] = 5 * math.cos(t) + (random.random() * 2 - 1)
     measurement['y'] = 6 * math.sin(t) + (random.random() * 2 - 1)
     measurement['z'] = (random.random() * 2 - 1)
 
-    # muunna json-muotoon 
+    # serialize the measurement to JSON format
     s = json.dumps(measurement)
-    # TODO: lähetä data HTTP Postilla serverille
+    # send the data to the server by HTTP POST
     response = requests.post("http://localhost:5000/uusimittaus", data = s)
 
     print(s)
