@@ -16,7 +16,7 @@ while t < 10:
     # serialize the measurement to JSON format
     s = json.dumps(measurement)
     # send the data to the server by HTTP POST
-    response = requests.post("http://localhost:5000/uusimittaus", data = s)
+    response = requests.post("http://localhost:5000/newmeasurement", data = s)
 
     print(s)
     time.sleep(0.5)

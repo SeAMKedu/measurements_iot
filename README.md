@@ -1,15 +1,14 @@
-# Python Flask, Socket.io ja Google Charts
+# Python Flask, Socket.io and Google Charts
 [![DOI](https://zenodo.org/badge/733807414.svg)](https://zenodo.org/doi/10.5281/zenodo.10409021)
 
-Tässä esimerkissä näytetään, miten mittausdataa voidaan näyttää web-sovelluksessa Google Chartin avulla niin, että data päivittyy reaaliaikaisesti.
+This example shows how measurement data can be displayed in a web application using Google Chart so that the data is updated in real time.
+The program datageneratorclient.py generates simulated measurement data and sends it to the server program. The server program measserver.py, implemented in Flash, receives the measurements and passes them to an html page where they are displayed with Google Charts. The server program communicates with the html page using socket.io.
 
-Ohjelma datageneratorclient.py (tai readdata.py) generoi simuloitua mittausdataa ja lähettää sen palvelinohjelmalle. Flaskilla toteutettu palvelinohjelma measserver.py vastaanottaa mittaukset ja välittää ne html-sivulle, jossa ne näytetään Google Chart -kaavioina. Palvelinohjelman ja html-sivun välisessä kommunikoinnissa käytetään socket.io:ta.
-
-## Tiedostot
+## Files
 
 ### datageneratorclient.py
 
-Python-ohjelma datageneratorclient.py generoi simuloitua mittausdataa. Kuvitteellisen laitteen paikkakoordinaatit generoidaan trigonometristen funktioiden avulla:
+The Python program datageneratorclient.py generates simulated measurement data. The spatial coordinates of the imaginary device are generated using trigonometric functions:
 
 ```python
     measurement = { }
@@ -18,22 +17,18 @@ Python-ohjelma datageneratorclient.py generoi simuloitua mittausdataa. Kuvitteel
     measurement['y'] = 6 * math.sin(t) + (random.random() * 2 - 1)
     measurement['z'] = (random.random() * 2 - 1)
 ```
-Generoidut mittaukset lähetetään palvelimelle HTTP Postin avulla:
+The generated measurements are sent to the server via HTTP Post:
 
 ```python
-    # muunna json-muotoon 
+    # serialize to JSON
     s = json.dumps(measurement)
-    # TODO: lähetä data HTTP Postilla serverille
-    response = requests.post("http://localhost:5000/uusimittaus", data = s)
+    # Send data the server by using HTTP POST
+    response = requests.post("http://localhost:5000/newmeasurement", data = s)
 ```
-
-Ohjelma  **readdata.py** toimii samaan tapaan kuin datageneratorclient.py. Sen sijaan, että se generoisi dataa simuloimalla, se lukee sisätilapaikannusjärjestelmän tuottamaa sijaintitietoa tiedostosta **data_2022_02_23.txt**.
 
 ### measserver.py
 
-Python Flask-ohjelma measserver.py vastaanottaa mittaukset ja välittää ne html-sivulle socket.io:n avulla.
-
-Ohjelman alustukset ja käynnistytoimenpiteet on esitetty alla:
+The Python Flask program measserver.py receives the measurements and passes them to an html page using socket.io. The initialization and startup procedures of the program are shown below:
 
 ```python
 import json
@@ -45,7 +40,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-# Lista mittauksia varten
+# List of measurements
 measurements = []
 
 ...
@@ -54,39 +49,40 @@ if __name__ == '__main__':
     socketio.run(app)
 ```
 
-Funktio get_line käsittelee juureen osoitetun sivupyynnön. Funktio avaa sivun linechart.html selaimessa.
+The get_line function handles a page request to the root. The function opens the linechart.html page in the browser.
 
 ```python
-# Näytä mittaukset Google Chart -kaavion avulla
+# Show the measurements
 @app.route('/')
 def get_line():
     return render_template('linechart.html')
 ```
-Funktio new_meas ottaa vastaan HTTP POST:lla osoitteeseen /uusimittaus lähetetyn viestin. Viestissä oleva json-muotoinen mittaus deserialisoidaan. Alun perin sanakirjassa olleet tiedot (aika, x, y ja z) muunnetaan listamuotoon, sillä Google Charts vaatii tiedon listamuotoisena.
+The new_meas function receives a message sent via HTTP POST to /newmeasurement. The json-formatted measurement in the message is deserialized. The data originally in the dictionary (time, x, y and z) is converted to list format, since Google Charts requires the data in list format.
 
-Uusi mittaus sijoitetaan measurements-listan alkuun (joka on siis lista listoja), että uusin mittaus näkyisi html-sivulla olevassa taulukossa ensimmäisenä. Koko measurements-lista sarjallistetaan ja lähetetään selaimelle socketio.emit-funktiolla.
+The new measurement is placed at the top of the measurements list (which is a list of lists) so that the newest measurement appears first in the table on the html page. The whole list of measurements is serialized and sent to the browser using the socketio.emit function.
 
 ```python
-# Otetaan vastaan HTTP POSTilla lähetty mittaus ja laitetaan se listaan
-@app.route('/uusimittaus', methods=['POST'])
+# Receive the measurements sent by HTTP POST
+@app.route('/newmeasurement', methods=['POST'])
 def new_meas():
-    # luetaan data viestistä ja deserialisoidaan JSON-data
+    # read the measurement and deserialize it from JSON to object
     m = request.get_json(force=True)
-    # muutetaan mittaus Google Chartille sopivaan muotoon (sanakirja -> lista)
+    # convert the meaurement to suitable form of Google chart (dictionary -> list)
     mg = [m['time'], m['x'], m['y'], m['z']]
-    # laitetaan listamuotoinen mittaus taulukon alkuun
+    # add measurement to the beginning of the list
     measurements.insert(0, mg)
-    # lähetetään koko lista socket.io:n avulla html-sivulle
+    # serialize the list to JSON
     s = json.dumps(measurements)
+    # broadcast the list to the clients by using socket.io
     socketio.emit('my_response', {'result': s})
-    # palautetaan vastaanotettu tieto
+    # return the measurement
     return json.dumps(m, indent=True)
 ```
 ### linechart.html
 
-Sivu linechart.html on templates-kansiossa. Selainohjelma ottaa vastaan socketio-viestejä ja näyttää niissä olevat mittaukset viivakaavioissa ja taulukossa.
+The linechart.html page is in the templates folder. The browser program receives the socketio messages and displays the measurements in linecharts and tables.
 
-Sivun rakenne on esitetty alla:
+The structure of the page is shown below:
 
 ```html
 <html>
@@ -105,9 +101,9 @@ Sivun rakenne on esitetty alla:
     </body>
   </html>
 ```
-Viivakaavio näytetään div-elementissä curve_chart ja taulukko div-elemntissä table_div.
+The line chart is displayed in the div element curve_chart and the table in the div element table_div.
 
-Google Chartin alustus ja socketio-viestin vastaanotto on esitetty alla:
+The initialization of Google Chart and the reception of the socketio message is shown below:
 
 ```javascript
         google.charts.load('current', {'packages':['corechart', 'table']});
@@ -124,9 +120,9 @@ Google Chartin alustus ja socketio-viestin vastaanotto on esitetty alla:
         }
 ```
 
-Saapunut socketio-viesti sisältää listan mittauksia. Yksi mittausrivi on on myös listan muodossa (aika, x, y, z). Kun socketio-viesti on saapunut, se deserialisoidaan ja muunnettu tieto välitetään funktioille drawChart() ja drawTable().
+The received socketio message contains a list of measurements. One row of measurements is also in the form of a list (time, x, y, z). When the socketio message is received, it is deserialized and the converted data is passed to drawChart() and drawTable().
 
-Funktio drawChart piirtää viivakaavion div-elementtiin curve_chart:
+The drawChart function draws a line chart in the div element curve_chart:
 
 ```javascript
         function drawChart(s) {
@@ -149,7 +145,7 @@ Funktio drawChart piirtää viivakaavion div-elementtiin curve_chart:
         }
 ```
 
-Funktio drawTable tekee taulukon div-elementtiin table_div:
+The drawTable function draws a table to the div element table_div:
 
 ```javascript
         // https://developers.google.com/chart/interactive/docs/gallery/table 
@@ -167,9 +163,9 @@ Funktio drawTable tekee taulukon div-elementtiin table_div:
         }
 ```
 
-## Kirjastojen asennus ja ohjelmien ajaminen
+## Installing libraries and running programs
 
-Ohjelmien ajamiseksi täytyy asentaa kirjastot Flask, Flask-SocketIO ja requests:
+To run the programs you need to install the libraries Flask, Flask-SocketIO and requests:
 
 ```
 pip install requests
@@ -177,11 +173,11 @@ pip install Flask
 pip install Flask-SocketIO 
 ```
 
-Käynnistä ensin palvelinohjelma measserver.py (py measserver.py).
+First, run the server program measserver.py (py measserver.py).
 
-Avaa sitten selaimesta sivu localhost:5000.
+Then open the localhost:5000 page in your browser.
 
-Avaa sitten uusi terminaali ja käynnistä mittausdataa tuottava ohjelma, joko datageneratorclient.py tai readdata.py
+Then open a new terminal and start the program that generates the measurement data, either datageneratorclient.py.
 
 
 
