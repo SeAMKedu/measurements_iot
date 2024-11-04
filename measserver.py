@@ -7,27 +7,28 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-# Lista mittauksia varten
+# List of measurements (this list can be replaced by a database)
 measurements = []
 
-# Näytä mittaukset Google Chart -kaavion avulla
+# Show the measurements
 @app.route('/')
 def get_line():
     return render_template('linechart.html')
 
-# Otetaan vastaan HTTP POSTilla lähetty mittaus ja laitetaan se listaan
-@app.route('/uusimittaus', methods=['POST'])
+# Receive the measurements sent by HTTP POST
+@app.route('/newmeasurement', methods=['POST'])
 def new_meas():
-    # luetaan data viestistä ja deserialisoidaan JSON-data
+    # read the measurement and deserialize it from JSON to object
     m = request.get_json(force=True)
-    # muutetaan mittaus Google Chartille sopivaan muotoon (sanakirja -> lista)
+    # convert the meaurement to suitable form of Google chart (dictionary -> list)
     mg = [m['time'], m['x'], m['y'], m['z']]
-    # laitetaan listamuotoinen mittaus taulukon alkuun
+    # add measurement to the beginning of the list
     measurements.insert(0, mg)
-    # lähetetään koko lista socket.io:n avulla html-sivulle
+    # serialize the list to JSON
     s = json.dumps(measurements)
+    # broadcast the list to the clients by using socket.io
     socketio.emit('my_response', {'result': s})
-    # palautetaan vastaanotettu tieto
+    # return the measurement
     return json.dumps(m, indent=True)
 
 if __name__ == '__main__':
