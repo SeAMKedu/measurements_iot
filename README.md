@@ -127,6 +127,8 @@ The initialization of Google Chart and the reception of the socketio message is 
 
 The received socketio message contains a list of measurements. One row of measurements is also in the form of a list (time, x, y, z). When the socketio message is received, it is deserialized and the converted data is passed to drawChart() and drawTable().
 
+At the beginning of the program, when socketio is connected, the chart and table are drawn with no data.
+
 The drawChart function draws a line chart in the div element curve_chart:
 
 ```javascript
