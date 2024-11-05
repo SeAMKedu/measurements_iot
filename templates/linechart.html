@@ -17,6 +17,11 @@
             drawChart(s)
             drawTable(s)
           })
+          socket.on('connect', function (data) {
+            console.log('connected')
+            drawChart(null)
+            drawTable(null)
+          })
         }
 
         function drawChart(s) {
@@ -25,7 +30,8 @@
             data.addColumn('number', 'x');
             data.addColumn('number', 'y');
             data.addColumn('number', 'z');
-            data.addRows(s);
+            if (s != null)
+              data.addRows(s);
   
           var options = {
             title: 'Indoor positioning system data',
@@ -45,7 +51,8 @@
           data.addColumn('number', 'x');
           data.addColumn('number', 'y');
           data.addColumn('number', 'z');
-          data.addRows(s);
+          if (s != null)
+            data.addRows(s);
   
           var table = new google.visualization.Table(document.getElementById('table_div'));
   
