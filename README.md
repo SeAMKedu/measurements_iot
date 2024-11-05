@@ -117,6 +117,11 @@ The initialization of Google Chart and the reception of the socketio message is 
             drawChart(s)
             drawTable(s)
           })
+          socket.on('connect', function (data) {
+            console.log('connected')
+            drawChart(null)
+            drawTable(null)
+          })
         }
 ```
 
@@ -131,7 +136,8 @@ The drawChart function draws a line chart in the div element curve_chart:
             data.addColumn('number', 'x');
             data.addColumn('number', 'y');
             data.addColumn('number', 'z');
-            data.addRows(s);
+            if (s != null)
+              data.addRows(s);
   
           var options = {
             title: 'Indoor positioning system data',
@@ -155,7 +161,8 @@ The drawTable function draws a table to the div element table_div:
           data.addColumn('number', 'x');
           data.addColumn('number', 'y');
           data.addColumn('number', 'z');
-          data.addRows(s);
+          if (s != null)
+            data.addRows(s);
   
           var table = new google.visualization.Table(document.getElementById('table_div'));
   
